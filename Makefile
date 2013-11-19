@@ -1,4 +1,4 @@
-SRCMODULES = key_names.c timestamp.c main.c
+SRCMODULES = key_names.c timestamp.c autorun.c main.c
 OBJMODULES = $(SRCMODULES:.c=.obj)
 HEADERS = $(SRCMODULES:.c=.h)
 EXEC_FILE = clock.exe

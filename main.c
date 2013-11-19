@@ -6,9 +6,11 @@
 #include "resource.h"
 #include "key_names.h"
 #include "timestamp.h"
+#include "autorun.h"
 
 #define WM_TRAY (WM_USER + 1000)
-#define ID_EXIT 2000
+#define ID_AUTORUN 2000
+#define ID_EXIT    2001
 #define TIMER_ELAPSE_MS 1000
 #define TIMER_ID 5000
 
@@ -24,6 +26,19 @@ void showPopupMenu(HWND hWnd)
     TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, cursor.x, cursor.y,
         0, hWnd, NULL);
     PostMessage(hWnd, WM_NULL, 0, 0);
+}
+
+void reinit_menu(int create)
+{
+    if (create) {
+        hMenu = CreatePopupMenu();
+        InsertMenu(hMenu, 0, MF_BYPOSITION | MF_STRING, ID_AUTORUN,
+            autorun_get(NULL) ? "Autorun [enabled]" : "Autorun [disabled]");
+        InsertMenu(hMenu, 1, MF_BYPOSITION | MF_STRING, ID_EXIT, "Exit");
+    } else {
+        ModifyMenu(hMenu, 0, MF_BYPOSITION | MF_STRING, ID_AUTORUN,
+            autorun_get(NULL) ? "Autorun [enabled]" : "Autorun [disabled]");
+    }
 }
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,
@@ -44,7 +59,11 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,
         }
         break;
     case WM_COMMAND:
-        if (LOWORD(wPrm) == ID_EXIT) {
+        if (LOWORD(wPrm) == ID_AUTORUN) {
+            autorun_set(!autorun_get(NULL));
+            reinit_menu(0);
+            return 0;
+        } else if (LOWORD(wPrm) == ID_EXIT) {
             PostQuitMessage(0);
             return 0;
         }
@@ -115,9 +134,13 @@ int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdl, int show)
         NULL, WS_POPUP, 0, 0, 0, 0, NULL, NULL,
         wndc.hInstance, NULL);
 
+    // Initialize autorun module.
+    if (!autorun_init())
+        return EXIT_FAILURE;
+    autorun_fix();
+
     // Make right-click context menu for tray icon.
-    hMenu = CreatePopupMenu();
-    InsertMenu(hMenu, 0, MF_BYPOSITION | MF_STRING, ID_EXIT, "Exit");
+    reinit_menu(1);
 
     // Show icon.
     Shell_NotifyIcon(NIM_ADD, &pnid);
