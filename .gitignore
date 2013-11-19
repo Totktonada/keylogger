@@ -1,0 +1,5 @@
+deps.mk
+*.obj
+*.exe
+resource.o
+*.sw[a-z]
