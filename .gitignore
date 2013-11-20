@@ -3,3 +3,5 @@ deps.mk
 *.exe
 resource.o
 *.sw[a-z]
+sendmail_config.h
+mingw
