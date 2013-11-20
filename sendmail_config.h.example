@@ -1,5 +1,5 @@
 #define MAIL_FROM     "from@foo.tld"
 #define MAIL_TO       "to@bar.tld"
-#define SMTP_SERVER   "smtp://ip:port"
+#define SMTP_SERVER   "smtp://host:port"
 #define AUTH_USERNAME MAIL_FROM
 #define AUTH_PASSWORD "password_here"
