@@ -1,19 +1,25 @@
 ABOUT
 =====
 
-Educational winapi keylogger. Write log to 'C:\keylog.txt'. Display tray icon
-with current time popup and context menu. Can autoruns via Windows Register key
-('HKLM/Software/Microsoft/Windows/CurrentVersion/Run'), this controlled by
-context menu. Periodically send key logs to specified at build-time e-mail.
+Educational winapi keylogger. It use for his actions most simple and obvious
+methods.
+
+Actions:
+* write log to 'C:\keylog.txt';
+* display tray icon with current time popup and context menu;
+* autoruns via Windows Register key [1] (controlled by context menu);
+* periodically sending key logs to specified at build-time e-mail.
+
+[1] 'HKLM/Software/Microsoft/Windows/CurrentVersion/Run'.
 
 BUILD
 =====
 
-Makefile for keylogger written in plan that 'make' running on Unix system, that
-have i686-mingw32 crosscompiler.
+Makefile for keylogger written in plan to run 'make' on Unix system, that have
+i686-mingw32 crosscompiler.
 
-Install libcurl to mingw directory. I use curl-7.33.0 with the next configure
-options:
+You need create 'mingw' directory in root project directory and install libcurl
+to it. I use curl-7.33.0 with the next configure options:
 
 ./configure CFLAGS='-Os'     \
     --disable-ares           \
@@ -59,7 +65,7 @@ options:
     --host=i686-mingw32      \
     --prefix=${PATH_TO_KEYLOGGER}/mingw
 
-All actions sequence:
+Full sequence of steps for building keylogger from scratch:
 
 ----------------------------------------------
 cd ${PATH_TO_KEYLOGGER}
