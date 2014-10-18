@@ -8,7 +8,7 @@ Features:
 * logs user input to `C:\keylog.txt`;
 * displays a tray icon with a context menu and a popup hint showing current
   time;
-* runs automatically on system boot via Windows Registry key [1] (switched
+* runs automatically on system boot via Windows Registry key \[1\] (switched
   on/off via context menu);
 * periodically sends key logs to an e-mail specified at build-time.
 
