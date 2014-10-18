@@ -1,26 +1,30 @@
 ABOUT
 =====
 
-Educational winapi keylogger. It use for his actions most simple and obvious
-methods.
+Educational winapi keylogger. Operates using the most simple and obvious
+means.
 
-Actions:
-* write log to 'C:\keylog.txt';
-* display tray icon with current time popup and context menu;
-* autoruns via Windows Register key [1] (controlled by context menu);
-* periodically sending key logs to specified at build-time e-mail.
+Features:
+* logs user input to `C:\keylog.txt`;
+* displays a tray icon with a context menu and a popup hint showing current
+  time;
+* runs automatically on system boot via Windows Registry key [1] (switched
+  on/off via context menu);
+* periodically sends key logs to an e-mail specified at build-time.
 
-[1] 'HKLM/Software/Microsoft/Windows/CurrentVersion/Run'.
+[1] `HKLM/Software/Microsoft/Windows/CurrentVersion/Run`.
 
-BUILD
-=====
+BUILDING
+========
 
-Makefile for keylogger written in plan to run 'make' on Unix system, that have
-i686-mingw32 crosscompiler.
+The project’s Makefile is designed for Unix systems with i686-mingw32
+crosscompiler and libcurl installed. Once these requirements are met, just type
+`make` to build.
 
-You need create 'mingw' directory in root project directory and install libcurl
-to it. I use curl-7.33.0 with the next configure options:
+Libcurl has to be installed to `mingw` subdirectory of the project root. I used
+curl-7.33.0 with these configure options:
 
+```
 ./configure CFLAGS='-Os'     \
     --disable-ares           \
     --disable-cookies        \
@@ -64,22 +68,26 @@ to it. I use curl-7.33.0 with the next configure options:
     --without-zlib           \
     --host=i686-mingw32      \
     --prefix=${PATH_TO_KEYLOGGER}/mingw
+```
 
-Full sequence of steps for building keylogger from scratch:
+The complete set of steps to build the keylogger from scratch is as follows:
 
-----------------------------------------------
+```
 cd ${PATH_TO_KEYLOGGER}
 mkdir mingw && cd mingw
-# Check http://curl.haxx.se/download.html
-download curl-7.33.0 && cd curl-7.33.0
+# Now download curl-7.33.0 from http://curl.haxx.se/download.html
+# and extract it to 'mingw/curl-7.33.0' directory.
+cd curl-7.33.0
+# Substitute '...' with the options given above.
 ./configure ... --prefix=$(realpath ${PWD}/..)
 make && make install
-# Ok, curl installed.
+# Curl is now installed.
 cd ../..
 cp sendmail_config.h{.example,}
 edit sendmail_config.h
 make
-# Ok, we get clock.exe file.
-----------------------------------------------
+# Now 'clock.exe' is finally here.
+# Hooray, build finished. Have fun.
+```
 
 // vim: set ft=asciidoc:
